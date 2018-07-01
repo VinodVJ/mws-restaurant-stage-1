@@ -179,7 +179,7 @@ createRestaurantHTML = (restaurant) => {
   const more = document.createElement('a');
   more.innerHTML = 'View Details';
   more.href = DBHelper.urlForRestaurant(restaurant);
-  more.alt = DBHelper.imageAltForRestaurant(restaurant);
+  more.alt = DBHelper.viewRestaurantButtonName(restaurant);
   li.append(more)
 
   return li
