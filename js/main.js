@@ -150,7 +150,7 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
     ul.append(createRestaurantHTML(restaurant));
   });
   addMarkersToMap();
-  loadingImages();
+  loadingImagesfnc();
 }
 
 /**
@@ -227,7 +227,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-loadingImages = () => {
+loadingImagesfnc = () => {
   let loadingImages = [].slice.call(document.querySelectorAll("img.loading"));
   let active = false;
 
