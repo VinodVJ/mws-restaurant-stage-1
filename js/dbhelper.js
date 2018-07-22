@@ -8,27 +8,99 @@ class DBHelper {
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    const port = 8000 // Change this to your server port
+    const port = 1337 // Change this to your server port
     return `http://localhost:${port}/data/restaurants.json`;
+  }
+
+  // Index DB
+
+  static IDBCreate(restaurants) {
+    let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
+    if (!window.indexedDB) {
+      window.alert("Your browser doesn't support IndexedDB hence this feature will not be available.");
+      return;
+    }
+    let open = indexedDB.open("RestaurantsRevDB", 1);
+
+    open.onupgradeneeded = function () {
+      let db = open.result;
+      let store = db.createObjectStore("ResturantStore", { keyPath: "id" });
+      let index = store.createIndex("by-id", "id");
+    };
+
+    open.onerror = function (err) {
+      console.error("Something wrong with IndexDB: " + err.target.errorCode);
+    }
+
+    open.onsuccess = function () {
+      let db = open.result;
+      let tx = db.transaction("ResturantStore", "readwrite");
+      let store = tx.objectStore("ResturantStore");
+      let index = store.index("by-id");
+
+      restaurants.forEach(function (restaurant) {
+        store.put(restaurant);
+      });
+
+      tx.oncomplete = function () {
+        db.close();
+      };
+    }
+  }
+
+  static getCachedData(callback) {
+    let restaurants = [];
+    let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
+    if (!window.indexedDB) {
+      window.alert("Your browser doesn't support IndexedDB hence this feature will not be available.");
+      return;
+    }
+    let open = indexedDB.open("RestaurantsRevDB", 1);
+
+    open.onsuccess = function () {
+      let db = open.result;
+      let tx = db.transaction("ResturantStore", "readwrite");
+      let store = tx.objectStore("ResturantStore");
+      let getData = store.getAll();
+
+      getData.onsuccess = function () {
+        callback(null, getData.result);
+      }
+
+      tx.oncomplete = function () {
+        db.close();
+      };
+    }
   }
 
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {
-    let xhr = new XMLHttpRequest();
-    xhr.open('GET', DBHelper.DATABASE_URL);
-    xhr.onload = () => {
-      if (xhr.status === 200) { // Got a success response from server!
-        const json = JSON.parse(xhr.responseText);
-        const restaurants = json.restaurants;
-        callback(null, restaurants);
-      } else { // Oops!. Got an error from server.
-        const error = (`Request failed. Returned status of ${xhr.status}`);
-        callback(error, null);
-      }
-    };
-    xhr.send();
+    if (navigator.onLine) {
+      let xhr = new XMLHttpRequest();
+      xhr.open('GET', DBHelper.DATABASE_URL);
+      xhr.onload = () => {
+        if (xhr.status === 200) { // Got a success response from server!
+          const restaurants = JSON.parse(xhr.responseText);
+          DBHelper.IDBCreate(restaurants);
+          callback(null, restaurants);
+        } else { // Oops!. Got an error from server.
+          const error = (`Request failed. Returned status of ${xhr.status}`);
+          callback(error, null);
+        }
+      };
+      xhr.send();
+    }else{
+      console.log('no internet / offline mode hence Using Cached data!');
+      DBHelper.getCachedData((error, restaurants) => {
+        if (restaurants.length > 0) {
+          console.log('Unable to fetch data from server.');
+          callback(null, restaurants);
+        }
+      });
+    }
+
   }
 
   /**
