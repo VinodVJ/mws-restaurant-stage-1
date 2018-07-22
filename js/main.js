@@ -150,6 +150,7 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
     ul.append(createRestaurantHTML(restaurant));
   });
   addMarkersToMap();
+  loadingImages();
 }
 
 /**
@@ -159,8 +160,10 @@ createRestaurantHTML = (restaurant) => {
   const li = document.createElement('li');
 
   const image = document.createElement('img');
-  image.className = 'restaurant-img';
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.className = 'restaurant-img loading';
+  image.src = 'img/loading.png';
+  image.dataset.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.dataset.srcset = `img/${restaurant.id}-lessres.jpg 300w`;
   image.alt = DBHelper.imageAltForRestaurant(restaurant);
   li.append(image);
 
@@ -222,4 +225,44 @@ if ('serviceWorker' in navigator) {
       console.log('ServiceWorker registration failed: ', error);
     });
   });
+}
+
+loadingImages = () => {
+  let loadingImages = [].slice.call(document.querySelectorAll("img.loading"));
+  let active = false;
+
+  const imgload = function () {
+    if (active === false) {
+      active = true;
+
+      setTimeout(function () {
+        loadingImages.forEach(function (loadingImage) {
+          if ((loadingImage.getBoundingClientRect().top <= window.innerHeight && loadingImage.getBoundingClientRect().bottom >= 0) && getComputedStyle(loadingImage).display !== "none") {
+            loadingImage.src = loadingImage.dataset.src;
+            loadingImage.srcset = loadingImage.dataset.srcset;
+            loadingImage.classList.remove("loading");
+
+            loadingImages = loadingImages.filter(function (image) {
+              return image !== loadingImage;
+            });
+
+            if (loadingImages.length === 0) {
+              document.removeEventListener("scroll", imgload);
+              window.removeEventListener("resize", imgload);
+              window.removeEventListener("orientationchange", imgload);
+            }
+          }
+        });
+
+        active = false;
+      }, 200);
+    }
+  };
+
+  document.addEventListener("scroll", imgload, {
+    capture: true,
+    passive: true
+  });
+  window.addEventListener("resize", imgload);
+  window.addEventListener("orientationchange", imgload);
 }
