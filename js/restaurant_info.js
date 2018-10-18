@@ -1,5 +1,7 @@
 let restaurant;
 var newMap;
+let reviews;
+var focusedElementBeforeModal;
 
 /**
  * Initialize map as soon as the page is loaded.
@@ -31,6 +33,13 @@ initMap = () => {
       }).addTo(newMap);
       fillBreadcrumb();
       DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
+    }
+  });
+  fetchReviewsFromURL((error, reviews) => {
+    if (error) {
+      console.log(error);
+    } else {
+      fillReviewsHTML(reviews);
     }
   });
 }  
@@ -83,6 +92,33 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   const name = document.getElementById('restaurant-name');
   name.innerHTML = restaurant.name;
 
+  const favourite = document.getElementById('restaurant-favourite');
+  let toggleParam;
+  if (restaurant.is_favorite && restaurant.is_favorite === 'true'){
+    makeFavourite(favourite);
+    toggleParam = 'false';
+  } else { 
+    favourite.innerHTML = 'Make favourite';
+    toggleParam = 'true';
+  }
+  favourite.onclick = function(){
+    if (window.navigator.onLine){
+      DBHelper.toggleFavourite(
+        function() {
+          if (toggleParam === 'true'){
+            console.log('adding');
+            makeFavourite(favourite);
+            toggleParam = 'false';
+          } else {
+            removeFavourite(favourite);
+            console.log('removing');
+            toggleParam = 'true';
+          }
+        }, restaurant.id, toggleParam
+      );
+    }
+  }
+
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
 
@@ -100,7 +136,7 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
     fillRestaurantHoursHTML();
   }
   // fill reviews
-  fillReviewsHTML();
+  // fillReviewsHTML();
 }
 
 /**
@@ -132,6 +168,50 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   title.innerHTML = 'Reviews';
   container.appendChild(title);
 
+  const newReviewButton = document.createElement('button');
+  newReviewButton.innerHTML = '&#43; Add Review';
+  newReviewButton.id = 'new-review-button';
+  newReviewButton.onclick = () => {
+    focusedElementBeforeModal = document.activeElement;
+    const modal = document.getElementById('new-review-modal');
+    modal.style.display = 'block';
+    document.getElementById('new-review-content').style.display = 'block';
+    modal.addEventListener('keydown', trapTabKey);
+    const focusableElementsString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], [contentediterable]';
+    let focusableElements = modal.querySelectorAll(focusableElementsString);
+    focusableElements = Array.prototype.slice.call(focusableElements);
+    
+    var firstTabStop = focusableElements[0];
+    var lastTabStop = focusableElements[focusableElements.length - 1];
+    
+    firstTabStop.focus();
+    
+    function trapTabKey(e){
+      if (e.keyCode === 9){
+        if (e.shiftKey) {
+          if (document.activeElement === firstTabStop) {
+            e.preventDefault();
+            lastTabStop.focus();
+          }
+        } else {
+          if (document.activeElement === lastTabStop) {
+            e.preventDefault();
+            firstTabStop.focus();
+          }
+        }
+      }
+    }
+  };
+  container.appendChild(newReviewButton);
+  
+  createNewReviewForm();
+  
+  document.getElementById("close-modal").onclick = function() {
+    document.getElementById('new-review-modal').style.display = 'none';
+    document.getElementById('new-review-content').style.display = 'none';
+    document.getElementById('new-review-button').focus();
+  };
+
   if (!reviews) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
@@ -143,6 +223,9 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
     ul.appendChild(createReviewHTML(review));
   });
   container.appendChild(ul);
+
+  document.getElementById('new-review-content').style.display = 'none';
+
 }
 
 /**
@@ -150,16 +233,24 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
  */
 createReviewHTML = (review) => {
   const li = document.createElement('li');
-  const name = document.createElement('p');
+  const div = document.createElement('div');
+  div.setAttribute('class', 'review-header');
+  
+  const name = document.createElement('span');
+  name.setAttribute('class', 'review-author');
   name.innerHTML = review.name;
-  li.appendChild(name);
+  div.appendChild(name);
 
-  const date = document.createElement('p');
-  date.innerHTML = review.date;
-  li.appendChild(date);
+  const date = document.createElement('span');
+  date.innerHTML = new Date(review.createdAt).toDateString();
+  date.setAttribute('class', 'review-date');
+  div.appendChild(date);
 
-  const rating = document.createElement('p');
+  li.appendChild(div);
+
+  const rating = document.createElement('span');
   rating.innerHTML = `Rating: ${review.rating}`;
+  rating.setAttribute('class', 'review-rating');
   li.appendChild(rating);
 
   const comments = document.createElement('p');
@@ -193,4 +284,156 @@ getParameterByName = (name, url) => {
   if (!results[2])
     return '';
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+function makeFavourite(favEl){
+  favEl.style.background = '#4BB543';
+  favEl.innerHTML = 'Favourited';
+}
+
+function removeFavourite(favEl){
+  favEl.style.background = '#f58500';
+  favEl.innerHTML = 'Make Favourite';
+}
+
+/**
+ * Create a field and label
+ */
+createFormField = (field) => {
+  const entry = document.createElement('p');
+  if (field.label) {
+    const label = document.createElement('label');
+    label.for = field.id;
+    label.innerHTML = field.label;
+    entry.appendChild(label);
+    entry.appendChild(document.createElement('br'));
+  }
+  const input = document.createElement(field.fieldType);
+  Object.entries(field.attributes).forEach( ([attribute, value]) => {
+    input.setAttribute(attribute, value);
+  });
+  if (field.fieldType === 'select'){
+    field.attributes.options.map( (option) => {
+      const opt = document.createElement('option');
+      opt.value = option;
+      opt.innerHTML = option;
+      input.appendChild(opt);
+    });
+  }
+  entry.appendChild(input);
+  return entry;
+}
+
+/**
+ * Create form to add new review.
+ */
+createNewReviewForm = () => {
+  const container = document.getElementById('new-review-content');
+  
+  const title = document.createElement('h2');
+  title.innerHTML = 'Write a Review';
+  container.appendChild(title);
+  
+  const form = document.createElement('form');
+  form.id = 'new-review-form';
+  
+  formFields = [
+    {
+      label: 'Reviewer Name:',
+      fieldType: 'input',
+      attributes: {id: 'username', name: 'name', type: 'text'}
+    },
+    {
+      label: 'Rating (out of 5):',
+      fieldType: 'select',
+      attributes: {id: 'user-rating', name: 'rating', options: [5, 4, 3, 2, 1]}
+    },
+    {
+      label: 'Review:',
+      fieldType: 'textarea',
+      attributes: {id: 'user-review', name: 'comments', rows: '10', cols: ''}
+    },
+    {
+      fieldType: 'input',
+      attributes: {name: 'restaurant_id', type: 'hidden', value: self.restaurant.id}
+    },
+    {
+      fieldType: 'input',
+      attributes: {type: 'submit', id: 'submit-review', value: 'Leave Review'}
+    }
+  ];
+  
+  formFields.map( (ff) => {
+    form.appendChild(createFormField(ff));
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitReview();
+  });
+  container.appendChild(form);
+  
+}
+
+/**
+ * Get a parameter by name from page URL.
+ */
+getParameterByName = (name, url) => {
+  if (!url)
+    url = window.location.href;
+  name = name.replace(/[\[\]]/g, '\\$&');
+  const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`),
+    results = regex.exec(url);
+  if (!results)
+    return null;
+  if (!results[2])
+    return '';
+  return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+/**
+ * Get the reviews for this restaurant.
+ */
+fetchReviewsFromURL = (callback) => {
+  if (self.reviews) { // reviews already fetched!
+    callback(null, self.reviews)
+    return;
+  }
+  const id = getParameterByName('id');
+  if (!id) { // no id found in URL
+    error = 'No restaurant id in URL'
+    callback(error, null);
+  } else {
+    DBHelper.fetchReviewsById(id, (error, reviews) => {
+      self.reviews = reviews;
+      callback(null, reviews)
+    });
+  }
+}
+
+function refreshForm() {
+  document.getElementById('new-review-modal').style.display = 'none';
+  document.getElementById('username').value = '';
+  document.getElementById('user-review').value = '';
+}
+
+function createReviewObject(FD){
+  const review = {createdAt: Date.now()};
+  for ([key, val] of FD.entries()) {
+    review[key] = val;
+  }
+  return review;
+}
+
+function submitReview() {
+  const form = document.getElementById('new-review-form');
+  const FD = new FormData(form);
+  const review = createReviewObject(FD);
+  const ul = document.getElementById('reviews-list').appendChild(createReviewHTML(review));
+  let idbKey;
+  DBHelper.cacheNewReview(review);
+  
+  DBHelper.sendUpdate(FD);
+  
+  refreshForm();
+  
 }

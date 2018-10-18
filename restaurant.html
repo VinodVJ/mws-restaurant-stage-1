@@ -41,6 +41,7 @@
       <h2 id="restaurant-name"></h2>
       <img id="restaurant-img">
       <p id="restaurant-cuisine"></p>
+      <button id="restaurant-favourite" aria-label="Favourite restaurant"></button>
       <p id="restaurant-address"></p>
       <table tabindex="0" id="restaurant-hours"></table>
     </section>
@@ -53,6 +54,12 @@
   </main>
   <!-- End main -->
 
+  <!-- Review Dialog -->
+  <div id="new-review-modal" class="modal" role="dialog" aria-labelledby="Create a new review">
+    <div id="new-review-content" class="modal-content">
+      <div id="close-modal" aria-label="close" tabindex="0">X</div>
+    </div>
+  </div>
   <!-- Beginning footer -->
   <footer id="footer">
     Copyright (c) 2017 <a href="/"><strong>Restaurant Reviews</strong></a> All Rights Reserved.
