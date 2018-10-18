@@ -225,7 +225,6 @@ nav h1 a {
   margin: 0;
   border: 0;
   box-sizing: border-box;
-  border-radius: 15px 0;
 }
 
 /* ====================== Restaurant Details ====================== */
@@ -297,14 +296,14 @@ nav h1 a {
   padding: 30px 40px 80px;
 }
 #reviews-container h2 {
-  color: #f58500;
+  color: #72791af1;
   font-size: 24pt;
   font-weight: 300;
   letter-spacing: -1px;
   padding-bottom: 1pt;
 }
 #reviews-container button {
-  background-color: #f58500;
+  background-color: #72791af1;
   color: #fff;
   font-size: 16px;
   font-weight: 700;
@@ -336,8 +335,8 @@ nav h1 a {
   text-align: center;
 }
 .review-header {
-  background: #252831;
-  color: #fff;
+  background: #f8b4f8;
+  color: #111;
   display: flex;
   justify-content: space-between;
   width: 100%;
@@ -350,17 +349,17 @@ nav h1 a {
   font-weight: bold;
 }
 .review-date{
-  color: #bbb;
+  color: #111;
   text-shadow: 0px 1px #111
 }
 .review-rating {
-  background: #f58500;
+  background: #0bd5f8;
   color: #fff;
   text-transform: uppercase;
   font-weight: bold;
-  padding: 8px;
-  margin: 10px 15px 15px;
+  padding: 4px;
   border-radius: 2px;
+  align-content: center;
 }
 #restaurant-hours td {
   color: #666;
@@ -409,27 +408,26 @@ nav h1 a {
 }
 .modal-content h2 {
   margin-top: 30px;
-  color: #f58500;
+  color: #0bd5f8;
 }
 #close-modal {
   margin-top: 0;
   margin-right: 10px;
-  color: #f58500;
+  color: #f32415;
   float: right;
-  font-size: 30px;
+  font-size: 25px;
   font-weight: 1000;
-  cursor: pointer;
 }
 .modal-content input, .modal-content select, .modal-content textarea {
   min-height: 20px;
-  font-size: 18px;
+  font-size: 15px;
   width: 100%;
   margin-top: 5px;
   padding: 7px;
   box-sizing: border-box;
 }
 .modal-content label {
-  background: #252831;
+  background: #f8b4f8;
   color: #fff;
   width: 100%;
   padding: 7px;
@@ -439,7 +437,7 @@ nav h1 a {
   box-sizing: border-box;
 }
 #submit-review {
-  background-color: #f58500;
+  background-color: #0bd5f8;
   color: #fff;
   font-size: 16px;
   font-weight: 700;
