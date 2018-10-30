@@ -11,10 +11,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initMap(); // added 
   fetchNeighborhoods();
   fetchCuisines();
-  // DBHelper.idbSync();
+  // setTimeout(DBHelper.idbSync(), 1000);
 });
 
-window.addEventListener('online', function(e) { DBHelper.idbSync(); });
+window.addEventListener('online', (event) => { 
+  DBHelper.idbSync(); 
+});
 
 /**
  * Fetch all neighborhoods and set their HTML.

@@ -2,7 +2,8 @@
  * Common database helper functions.
  */
 
- const idb_version = 2;
+ const idb_version = 6;
+ var reviewLength;
 class DBHelper {
 
   /**
@@ -290,6 +291,7 @@ class DBHelper {
     xhr.onload = () => {
       if (xhr.status === 200) { // Got a success response from server!
         const reviews = JSON.parse(xhr.responseText);
+        reviewLength = reviews.length;
         let idb = indexedDB.open("RestaurantsRevDB", idb_version);
         idb.onsuccess = function () {
           let db = idb.result;
@@ -349,6 +351,10 @@ class DBHelper {
    * Save a new review to IndexedDB
    */
   static cacheNewReview(review) {
+    if(review.id == null){
+      review.id = reviewLength+1;
+      reviewLength++;
+    }
     let idb = indexedDB.open("RestaurantsRevDB", idb_version);
     return idb.onsuccess = function () {
       let db = idb.result;
@@ -374,7 +380,7 @@ class DBHelper {
   /**
    * Send review to server
    */ 
-  static sendUpdate(data, fresh=true){
+  /*static sendUpdate(data, fresh=true){
     const XHR = new XMLHttpRequest();
     XHR.addEventListener("load", function(event) {
       if (!fresh) DBHelper.deleteLocalUpdate(data.id);
@@ -388,18 +394,57 @@ class DBHelper {
       XHR.send(JSON.stringify(data, ['name', 'rating', 'restaurant_id', 'comments']));
     }
     else XHR.send(data);
-  }
+  }*/
+
+  static sendUpdate(data, fresh=true) {
+    console.log(data);
+    JSON.stringify(data, ['name', 'rating', 'restaurant_id', 'comments']);
+    if(data.id == null){
+      data.id = reviewLength+1;
+      reviewLength++;
+    }
+    if(!fresh){
+      return fetch(DBHelper.DATABASE_URL + 'reviews', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }).then(DBHelper.handleErrors(data));
+    }else{
+      DBHelper.deleteLocalUpdate(data.id);
+      return fetch(DBHelper.DATABASE_URL + 'reviews', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      })
+      .catch(error => DBHelper.queueNewReview(createReviewObject(data)) );
+    }
+
+	}
 
   /**
    * Sync localData key-value store (on reload or online)
    */ 
   static idbSync(){
+    var val;
     let idb = indexedDB.open("RestaurantsRevDB", idb_version);
     idb.onsuccess = function () {
       let db = idb.result;
       const tx = db.transaction('localdata', 'readwrite');
       const keyvalStore = tx.objectStore('localdata');
-      keyvalStore.getAll().then(
+      let getlcd = keyvalStore.getAll()
+      if(getlcd.length>0){
+        for ( val in getlcd) {
+          DBHelper.sendUpdate(
+            {
+              id: getlcd[val].id,
+              restaurant_id: getlcd[val].restaurant_id,
+              name: getlcd[val].name,
+              rating: getlcd[val].rating,
+              comments: getlcd[val].comments
+            }, false
+          );
+        }
+      }
+
+      /*keyvalStore.getAll().then(
         function(vals) {
           for (const v of vals) {
             DBHelper.sendUpdate(
@@ -413,7 +458,7 @@ class DBHelper {
             );
           }
         }
-      );
+      );*/
     }
   }
 
@@ -445,5 +490,15 @@ class DBHelper {
     XHR.open("PUT", DBHelper.DATABASE_URL + `restaurants/${id}/?is_favorite=${toggle}`);
     XHR.send();
   }
+
+  static handleErrors(response, data) {
+		if (!response.ok) {
+      if(response!=null){
+        DBHelper.queueNewReview(createReviewObject(response));
+      }
+			return;
+		}
+		return response.json();
+	}
 }
 

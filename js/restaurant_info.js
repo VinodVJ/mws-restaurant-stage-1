@@ -2,6 +2,7 @@ let restaurant;
 var newMap;
 let reviews;
 var focusedElementBeforeModal;
+var reviewLength;
 
 /**
  * Initialize map as soon as the page is loaded.
@@ -40,6 +41,7 @@ initMap = () => {
       console.log(error);
     } else {
       fillReviewsHTML(reviews);
+      reviewLength = reviews.length;
     }
   });
 }  
@@ -405,6 +407,7 @@ fetchReviewsFromURL = (callback) => {
   } else {
     DBHelper.fetchReviewsById(id, (error, reviews) => {
       self.reviews = reviews;
+      // reviewLength = reviews.length;
       callback(null, reviews)
     });
   }
@@ -417,7 +420,7 @@ function refreshForm() {
 }
 
 function createReviewObject(FD){
-  const review = {createdAt: Date.now()};
+  const review = {createdAt: Date.now(), id: reviewLength};
   for ([key, val] of FD.entries()) {
     review[key] = val;
   }
