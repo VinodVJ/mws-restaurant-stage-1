@@ -410,11 +410,20 @@ class DBHelper {
       }).then(DBHelper.handleErrors(data));
     }else{
       DBHelper.deleteLocalUpdate(data.id);
-      return fetch(DBHelper.DATABASE_URL + 'reviews', {
+      fetch(DBHelper.DATABASE_URL + 'reviews', {
         method: 'POST',
         body: JSON.stringify(data)
-      })
-      .catch(error => DBHelper.queueNewReview(createReviewObject(data)) );
+      }).then(function(response){
+        if(response.ok){
+          return response
+        }else{
+          DBHelper.queueNewReview(createReviewObject(response));
+          throw new Error('Network error')
+        }
+      }).catch(function(error){
+        console.log('error: ', error.message);
+      });
+      // .catch(error => DBHelper.queueNewReview(createReviewObject(data)) );
     }
 
 	}

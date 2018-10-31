@@ -418,7 +418,7 @@ function refreshForm() {
   document.getElementById('username').value = '';
   document.getElementById('user-review').value = '';
 }
-
+                                                                                                                                        
 function createReviewObject(FD){
   const review = {createdAt: Date.now(), id: reviewLength};
   for ([key, val] of FD.entries()) {

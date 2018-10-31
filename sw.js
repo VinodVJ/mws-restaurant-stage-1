@@ -60,6 +60,12 @@ self.addEventListener('fetch', function(event) {
             // Check if we received a valid response
             if(!response || response.status != 200 || response.type != 'basic') {
               return response;
+            }else{
+              if(response.ok){
+                return response
+              }else{
+                throw new Error('Network error')
+              }
             }
             // to clone it so we have two streams.
             var responseToCache = response.clone();
@@ -71,7 +77,9 @@ self.addEventListener('fetch', function(event) {
 
             return response;
           }
-        );
+        ).catch(function(error){
+          console.log('error: ', error.message);
+        });
 			}
 		)
 	);
