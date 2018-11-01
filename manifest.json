@@ -1,36 +1,36 @@
 {
-    "manifest_version": 1,
-    "short_name": "Restaurant",
-    "name": "Restaurants Review App",
-    "icons": [
-        {
-            "src": "img/icons/hotel-bell-128.png",
-            "type": "image/png",
-            "sizes": "128x128"
-        },
-        {
-            "src": "img/icons/hotel-bell-192.png",
-            "type": "image/png",
-            "sizes": "192x192"
-        },
-        {
-            "src": "img/icons/hotel-bell-256.png",
-            "type": "image/png",
-            "sizes": "256x256"
-        },
-        {
-            "src": "img/icons/hotel-bell-512.png",
-            "type": "image/png",
-            "sizes": "512x512"
-        }
-    ],
-    "web_accessible_resources": [
-        "img/icons/*.png"
-    ],
-    "start_url": "/",
-    "scope": "/",
-    "display": "standalone",
-    "background_color": "#5ab0f4",
-    "orientation": "portrait",
-    "theme_color": "#5ab0f4"
+  "manifest_version": 1,
+  "short_name": "Restaurant",
+  "name": "Restaurants Review App",
+  "icons": [
+      {
+          "src": "img/icons/hotel-bell-128.png",
+          "type": "image/png",
+          "sizes": "128x128"
+      },
+      {
+          "src": "img/icons/hotel-bell-192.png",
+          "type": "image/png",
+          "sizes": "192x192"
+      },
+      {
+          "src": "img/icons/hotel-bell-256.png",
+          "type": "image/png",
+          "sizes": "256x256"
+      },
+      {
+          "src": "img/icons/hotel-bell-512.png",
+          "type": "image/png",
+          "sizes": "512x512"
+      }
+  ],
+  "web_accessible_resources": [
+      "img/icons/*.png"
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#5ab0f4",
+  "orientation": "portrait",
+  "theme_color": "#5ab0f4"
 }

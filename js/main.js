@@ -5,18 +5,32 @@ var newMap
 var markers = []
 
 /**
+* Register service worker if supported
+*/
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(
+      function(registration) {
+        console.log("Success! Scope: " + registration.scope);
+      },
+      function(error) {
+        console.log("Error. " + error);
+      }
+    );
+  });
+}
+
+/**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', (event) => {
   initMap(); // added 
   fetchNeighborhoods();
   fetchCuisines();
-  // setTimeout(DBHelper.idbSync(), 1000);
+  DBHelper.idbSync();
 });
 
-window.addEventListener('online', (event) => { 
-  DBHelper.idbSync(); 
-});
+window.addEventListener('online', function(e) { DBHelper.idbSync(); });
 
 /**
  * Fetch all neighborhoods and set their HTML.
@@ -92,6 +106,7 @@ initMap = () => {
   }).addTo(newMap);
 
   updateRestaurants();
+  DBHelper.fetchReviews(() => {}); // fetch and cache reviews after page load
 }
 /* window.initMap = () => {
   let loc = {
@@ -158,6 +173,10 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
   loadingImagesfnc();
 }
 
+insertIntoImgURL = (url, subStr) => {
+  return url + subStr + '.jpg';
+}
+
 /**
  * Create restaurant HTML.
  */
@@ -219,19 +238,6 @@ addMarkersToMap = (restaurants = self.restaurants) => {
   });
 } */
 
-//ServiceWorker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js').then(function(registration) {
-      // Registration was successful
-      console.log('ServiceWorker registration successfull with scope: ', registration.scope);
-    }, function(error) {
-      // registration failed
-      console.log('ServiceWorker registration failed: ', error);
-    });
-  });
-}
-
 loadingImagesfnc = () => {
   let loadingImages = [].slice.call(document.querySelectorAll("img.loading"));
   let active = false;
@@ -271,3 +277,4 @@ loadingImagesfnc = () => {
   window.addEventListener("resize", imgload);
   window.addEventListener("orientationchange", imgload);
 }
+

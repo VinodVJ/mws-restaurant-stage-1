@@ -2,14 +2,34 @@ let restaurant;
 var newMap;
 let reviews;
 var focusedElementBeforeModal;
-var reviewLength;
 
 /**
- * Initialize map as soon as the page is loaded.
+* Register service worker if supported
+*/
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(
+      function(registration) {
+        console.log("Success! Scope: " + registration.scope);
+      },
+      function(error) {
+        console.log("Error. " + error);
+      }
+    );
+  });
+}
+
+/**
+ * Initialize leaflet map
  */
 document.addEventListener('DOMContentLoaded', (event) => {  
   initMap();
+  DBHelper.idbSync();
 });
+
+window.addEventListener('online', function(e) { DBHelper.idbSync(); });
+
+document.ononline = function () {  }
 
 /**
  * Initialize leaflet map
@@ -41,10 +61,9 @@ initMap = () => {
       console.log(error);
     } else {
       fillReviewsHTML(reviews);
-      reviewLength = reviews.length;
     }
   });
-}  
+}
  
 /* window.initMap = () => {
   fetchRestaurantFromURL((error, restaurant) => {
@@ -90,6 +109,7 @@ fetchRestaurantFromURL = (callback) => {
 /**
  * Create restaurant HTML and add it to the webpage
  */
+
 fillRestaurantHTML = (restaurant = self.restaurant) => {
   const name = document.getElementById('restaurant-name');
   name.innerHTML = restaurant.name;
@@ -159,143 +179,6 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
 
     hours.appendChild(row);
   }
-}
-
-/**
- * Create all reviews HTML and add them to the webpage.
- */
-fillReviewsHTML = (reviews = self.restaurant.reviews) => {
-  const container = document.getElementById('reviews-container');
-  const title = document.createElement('h2');
-  title.innerHTML = 'Reviews';
-  container.appendChild(title);
-
-  const newReviewButton = document.createElement('button');
-  newReviewButton.innerHTML = '&#43; Add Review';
-  newReviewButton.id = 'new-review-button';
-  newReviewButton.onclick = () => {
-    focusedElementBeforeModal = document.activeElement;
-    const modal = document.getElementById('new-review-modal');
-    modal.style.display = 'block';
-    document.getElementById('new-review-content').style.display = 'block';
-    modal.addEventListener('keydown', trapTabKey);
-    const focusableElementsString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], [contentediterable]';
-    let focusableElements = modal.querySelectorAll(focusableElementsString);
-    focusableElements = Array.prototype.slice.call(focusableElements);
-    
-    var firstTabStop = focusableElements[0];
-    var lastTabStop = focusableElements[focusableElements.length - 1];
-    
-    firstTabStop.focus();
-    
-    function trapTabKey(e){
-      if (e.keyCode === 9){
-        if (e.shiftKey) {
-          if (document.activeElement === firstTabStop) {
-            e.preventDefault();
-            lastTabStop.focus();
-          }
-        } else {
-          if (document.activeElement === lastTabStop) {
-            e.preventDefault();
-            firstTabStop.focus();
-          }
-        }
-      }
-    }
-  };
-  container.appendChild(newReviewButton);
-  
-  createNewReviewForm();
-  
-  document.getElementById("close-modal").onclick = function() {
-    document.getElementById('new-review-modal').style.display = 'none';
-    document.getElementById('new-review-content').style.display = 'none';
-    document.getElementById('new-review-button').focus();
-  };
-
-  if (!reviews) {
-    const noReviews = document.createElement('p');
-    noReviews.innerHTML = 'No reviews yet!';
-    container.appendChild(noReviews);
-    return;
-  }
-  const ul = document.getElementById('reviews-list');
-  reviews.forEach(review => {
-    ul.appendChild(createReviewHTML(review));
-  });
-  container.appendChild(ul);
-
-  document.getElementById('new-review-content').style.display = 'none';
-
-}
-
-/**
- * Create review HTML and add it to the webpage.
- */
-createReviewHTML = (review) => {
-  const li = document.createElement('li');
-  const div = document.createElement('div');
-  div.setAttribute('class', 'review-header');
-  
-  const name = document.createElement('span');
-  name.setAttribute('class', 'review-author');
-  name.innerHTML = review.name;
-  div.appendChild(name);
-
-  const date = document.createElement('span');
-  date.innerHTML = new Date(review.createdAt).toDateString();
-  date.setAttribute('class', 'review-date');
-  div.appendChild(date);
-
-  li.appendChild(div);
-
-  const rating = document.createElement('span');
-  rating.innerHTML = `Rating: ${review.rating}`;
-  rating.setAttribute('class', 'review-rating');
-  li.appendChild(rating);
-
-  const comments = document.createElement('p');
-  comments.innerHTML = review.comments;
-  li.appendChild(comments);
-
-  return li;
-}
-
-/**
- * Add restaurant name to the breadcrumb navigation menu
- */
-fillBreadcrumb = (restaurant=self.restaurant) => {
-  const breadcrumb = document.getElementById('breadcrumb');
-  const li = document.createElement('li');
-  li.innerHTML = restaurant.name;
-  breadcrumb.appendChild(li);
-}
-
-/**
- * Get a parameter by name from page URL.
- */
-getParameterByName = (name, url) => {
-  if (!url)
-    url = window.location.href;
-  name = name.replace(/[\[\]]/g, '\\$&');
-  const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`),
-    results = regex.exec(url);
-  if (!results)
-    return null;
-  if (!results[2])
-    return '';
-  return decodeURIComponent(results[2].replace(/\+/g, ' '));
-}
-
-function makeFavourite(favEl){
-  favEl.style.background = '#4BB543';
-  favEl.innerHTML = 'Favourited';
-}
-
-function removeFavourite(favEl){
-  favEl.style.background = '#f58500';
-  favEl.innerHTML = 'Make Favourite';
 }
 
 /**
@@ -373,7 +256,135 @@ createNewReviewForm = () => {
     submitReview();
   });
   container.appendChild(form);
+}
+
+/**
+ * Create all reviews HTML and add them to the webpage.
+ */
+fillReviewsHTML = (reviews) => {
+  const container = document.getElementById('reviews-container');
+  const title = document.createElement('h2');
+  title.innerHTML = 'Reviews';
+  container.appendChild(title);
   
+  const newReviewButton = document.createElement('button');
+  newReviewButton.innerHTML = '&#43; Add Review';
+  newReviewButton.id = 'new-review-button';
+  newReviewButton.onclick = () => {
+    focusedElementBeforeModal = document.activeElement;
+    const modal = document.getElementById('new-review-modal');
+    modal.style.display = 'block';
+    document.getElementById('new-review-content').style.display = 'block';
+    modal.addEventListener('keydown', trapTabKey);
+    const focusableElementsString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], [contentediterable]';
+    let focusableElements = modal.querySelectorAll(focusableElementsString);
+    focusableElements = Array.prototype.slice.call(focusableElements);
+    
+    var firstTabStop = focusableElements[0];
+    var lastTabStop = focusableElements[focusableElements.length - 1];
+    
+    firstTabStop.focus();
+    
+    function trapTabKey(e){
+      if (e.keyCode === 9){
+        if (e.shiftKey) {
+          if (document.activeElement === firstTabStop) {
+            e.preventDefault();
+            lastTabStop.focus();
+          }
+        } else {
+          if (document.activeElement === lastTabStop) {
+            e.preventDefault();
+            firstTabStop.focus();
+          }
+        }
+      }
+    }
+  };
+  container.appendChild(newReviewButton);
+  
+  createNewReviewForm();
+  
+  document.getElementById("close-modal").onclick = function() {
+    document.getElementById('new-review-modal').style.display = 'none';
+    document.getElementById('new-review-content').style.display = 'none';
+    document.getElementById('new-review-button').focus();
+  };
+  
+  //document.getElementById("close-modal").onclick = closeModal();
+  
+  if (!reviews) {
+    const noReviews = document.createElement('p');
+    noReviews.innerHTML = 'No reviews yet!';
+    container.appendChild(noReviews);
+    return;
+  }
+  const ul = document.getElementById('reviews-list');
+  reviews.forEach(review => {
+    ul.appendChild(createReviewHTML(review));
+  });
+  container.appendChild(ul);
+  
+  document.getElementById('new-review-content').style.display = 'none';
+}
+
+/**
+ * Create review HTML and add it to the webpage.
+ */
+createReviewHTML = (review) => {
+  const li = document.createElement('li');
+  const div = document.createElement('div');
+  div.setAttribute('class', 'review-header');
+  
+  const name = document.createElement('span');
+  name.setAttribute('class', 'review-author');
+  name.innerHTML = review.name;
+  div.appendChild(name);
+
+  const date = document.createElement('span');
+  date.innerHTML = new Date(review.createdAt).toDateString();
+  date.setAttribute('class', 'review-date');
+  div.appendChild(date);
+
+  li.appendChild(div);
+
+  const rating = document.createElement('span');
+  rating.innerHTML = `Rating: ${review.rating}`;
+  rating.setAttribute('class', 'review-rating');
+  li.appendChild(rating);
+
+  const comments = document.createElement('p');
+  comments.innerHTML = review.comments;
+  li.appendChild(comments);
+
+  return li;
+}
+
+/**
+ * Make Favourite
+ */
+insertIntoImgURL = (url, subStr) => {
+  return url + subStr + '.jpg';
+}
+
+function makeFavourite(favEl){
+  favEl.style.background = '#4BB543';
+  favEl.innerHTML = 'Favourited';
+}
+
+function removeFavourite(favEl){
+  favEl.style.background = '#f58500';
+  favEl.innerHTML = 'Make Favourite';
+}
+
+/**
+ * Add restaurant name to the breadcrumb navigation menu
+ */
+fillBreadcrumb = (restaurant=self.restaurant) => {
+  const breadcrumb = document.getElementById('breadcrumb');
+  const li = document.createElement('li');
+  li.innerHTML = restaurant.name;
+  breadcrumb.appendChild(li);
 }
 
 /**
@@ -407,7 +418,6 @@ fetchReviewsFromURL = (callback) => {
   } else {
     DBHelper.fetchReviewsById(id, (error, reviews) => {
       self.reviews = reviews;
-      // reviewLength = reviews.length;
       callback(null, reviews)
     });
   }
@@ -418,9 +428,9 @@ function refreshForm() {
   document.getElementById('username').value = '';
   document.getElementById('user-review').value = '';
 }
-                                                                                                                                        
+
 function createReviewObject(FD){
-  const review = {createdAt: Date.now(), id: reviewLength};
+  const review = {createdAt: Date.now()};
   for ([key, val] of FD.entries()) {
     review[key] = val;
   }
